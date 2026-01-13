@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using ws_scanner.WinForms;
+using ws_scanner.WinForms.Forms;
 
 ApplicationConfiguration.Initialize();
 
