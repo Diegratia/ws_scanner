@@ -17,5 +17,10 @@ namespace ws_scanner.WinForms.Forms
             tcpServerControl.BringToFront(); // 🔥 penting untuk safety
             MessageBox.Show("MainForm created");
         }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

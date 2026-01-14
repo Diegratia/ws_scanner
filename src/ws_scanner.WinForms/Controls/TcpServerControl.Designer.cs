@@ -17,15 +17,12 @@
 
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
             txtPort = new TextBox();
             btnStart = new Button();
             btnStop = new Button();
             lblPort = new Label();
             btnCheckWebcam = new Button();
             lblCheckWebcam = new Label();
-            errorProvider1 = new ErrorProvider(components);
-            ((System.ComponentModel.ISupportInitialize)errorProvider1).BeginInit();
             SuspendLayout();
             // 
             // txtPort
@@ -83,10 +80,6 @@
             lblCheckWebcam.TabIndex = 5;
             lblCheckWebcam.Text = "Check Webcam";
             // 
-            // errorProvider1
-            // 
-            errorProvider1.ContainerControl = this;
-            // 
             // TcpServerControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -100,7 +93,6 @@
             Controls.Add(btnStop);
             Name = "TcpServerControl";
             Size = new Size(393, 235);
-            ((System.ComponentModel.ISupportInitialize)errorProvider1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -113,6 +105,5 @@
         private Label lblPort;
         private Button btnCheckWebcam;
         private Label lblCheckWebcam;
-        private ErrorProvider errorProvider1;
     }
 }
