@@ -1,13 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
-using ws_scanner.WinForms;
+using ws_scanner.WinForms.Forms;
 
 ApplicationConfiguration.Initialize();
 
 var services = new ServiceCollection();
 
 //services.AddSingleton<IScannerService, ScannerService>();
-services.AddSingleton<MainForm>();
+services.AddSingleton<TcpServerForm>();
 
 var provider = services.BuildServiceProvider();
 
-Application.Run(provider.GetRequiredService<MainForm>());
+Application.Run(provider.GetRequiredService<TcpServerForm>());

@@ -1,13 +1,13 @@
 using System.Runtime.InteropServices;
 using ws_scanner.Application.Interfaces;
 using ws_scanner.Infrastructure.Device;
-namespace ws_scanner.WinForms
+namespace ws_scanner.WinForms.Forms
 {
-    public partial class MainForm : Form
+    public partial class TcpServerForm : Form
     {
         private readonly IDeviceService _deviceService;
 
-        public MainForm()
+        public TcpServerForm()
         {
             InitializeComponent();
             _deviceService = new DeviceService();
