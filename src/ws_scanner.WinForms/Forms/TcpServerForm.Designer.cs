@@ -96,7 +96,8 @@
             MaximizeBox = false;
             Name = "TcpServerForm";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Scanner";
+            Text = "Tcp Server Configuration";
+            Load += TcpServerForm_Load;
             ResumeLayout(false);
             PerformLayout();
 

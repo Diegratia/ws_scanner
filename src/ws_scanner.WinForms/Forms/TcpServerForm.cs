@@ -66,6 +66,11 @@ namespace ws_scanner.WinForms.Forms
         [DllImport("user32.dll")]
         private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
 
+        private void TcpServerForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
         //private void btnCheckWebcam_Click(object sender, EventArgs e)
         //{
 
