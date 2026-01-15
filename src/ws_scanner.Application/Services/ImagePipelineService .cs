@@ -1,13 +1,14 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using ws_scanner.Application.Interfaces;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
-using ws_scanner.Application.Interfaces;
 using ws_scanner.Application.Dtos;
+using ws_scanner.Application.Interfaces;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ws_scanner.Application.Services
 {
@@ -17,8 +18,8 @@ namespace ws_scanner.Application.Services
         private readonly IOcrApiClient _ocr;
         private readonly IWebSocketService _ws;
 
-        private string? _pendingImage;   // file yang masuk duluan
-        private string? _docType;        // type dari WS
+        private WsRequest? _wsRequest;
+        private string? _pendingImage;
 
         private readonly object _processLock = new();
         private bool _isProcessing;
@@ -33,29 +34,33 @@ namespace ws_scanner.Application.Services
             _ws = ws;
 
             _watcher.OnImageReady += OnImageArrived;
-            _ws.OnDocumentTypeReceived += OnDocTypeReceived;
+            _ws.OnRequestReceived += OnWsRequest;
         }
 
         public void Start() => _watcher.Start();
         public void Stop() => _watcher.Stop();
 
-        // 1️⃣ FILE MASUK
+        // 📁 FILE MASUK
         private void OnImageArrived(string imagePath)
         {
             Debug.WriteLine($"📁 IMAGE ARRIVED: {imagePath}");
             _pendingImage = imagePath;
-
-            // fire-and-forget dari event sinkron
             _ = TryProcessAsync();
         }
 
-        // 2️⃣ WS MESSAGE MASUK
-        private async Task OnDocTypeReceived(string type)
+        // 📩 WS REQUEST MASUK
+        private Task OnWsRequest(WsRequest req)
         {
-            Debug.WriteLine($"📩 DOC TYPE RECEIVED: {type}");
-            _docType = type;
+            lock (_processLock)
+            {
+                _wsRequest = req;
+            }
 
-            await TryProcessAsync();
+            Debug.WriteLine(
+                $"📩 WS CONTEXT SET: doc={req.DocType}, action={req.ActionType}, source={req.ActionSource}"
+            );
+
+            return TryProcessAsync();
         }
 
         private static string ImageToBase64(string imagePath)
@@ -64,89 +69,106 @@ namespace ws_scanner.Application.Services
             return Convert.ToBase64String(bytes);
         }
 
-        // 3️⃣ JALANKAN OCR KALAU SIAP (async Task, bukan async void)
+
+
+        private static string ImageToBase64DataUri(string imagePath)
+        {
+            var bytes = File.ReadAllBytes(imagePath);
+            var base64 = Convert.ToBase64String(bytes);
+
+            var ext = Path.GetExtension(imagePath).ToLowerInvariant();
+            var mime = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            return $"data:{mime};base64,{base64}";
+        }
+
+
+        // 🚀 PROSES UTAMA
         private async Task TryProcessAsync()
         {
             string? imagePath;
-            string? type;
+            WsRequest? req;
 
             lock (_processLock)
             {
-                if (_isProcessing || _pendingImage == null || _docType == null)
+                if (_isProcessing || _pendingImage == null || _wsRequest == null)
                 {
-                    Debug.WriteLine("⏳ WAITING (image or docType missing or already processing)");
+                    Debug.WriteLine("⏳ WAITING (image or ws context missing or already processing)");
                     return;
                 }
 
-                // ambil snapshot lalu reset agar hanya diproses 1x
                 _isProcessing = true;
                 imagePath = _pendingImage;
-                type = _docType;
+                req = _wsRequest;
+
                 _pendingImage = null;
-                _docType = null;
-        
+                _wsRequest = null;
             }
+
             try
             {
-                var request = new OcrRequest(
-                     imagePath!,
-                     type!
-                 );
+                Debug.WriteLine($"🚀 OCR START ({req!.DocType})");
 
-                Debug.WriteLine($"🚀 OCR START ({type})");
-
-                //var ocrResult = await _ocr.SendAsync(imagePath!, type!);
-                var ocrResult = await _ocr.SendAsync(request);
-
-                var base64 = ImageToBase64(imagePath!);
-
-                // 1️⃣ READY + BASE64
-                var readyMsg = WsResponse.Ready(
-                    type!,
-                    new { imageBase64 = base64 }
-                );
-                await _ws.SendAsync(JsonSerializer.Serialize(readyMsg));
-
-                // 2️⃣ OCR RESULT
-                var ocrMsg = WsResponse.OcrResult(
-                   type!,
-                   ocrResult!
+                await _ws.SendAsync(
+                   JsonSerializer.Serialize(
+                       WsResponse.Ready(
+                           req,
+                           new { hasImage = true }
+                       )
+                   )
                );
 
-                await _ws.SendAsync(JsonSerializer.Serialize(ocrMsg));
+                var ocrRequest = new OcrRequest(
+                    imagePath!,
+                    req.DocType
+                );
+
+                await WaitUntilFileReadyAsync(imagePath);
+                await ResizeImageIfNeededAsync(imagePath);
+                var raw = await _ocr.SendAsync(ocrRequest);
+                var parsed = JsonSerializer.Deserialize<object>(raw);
+
+                await WaitUntilFileReadyAsync(imagePath);
+                var base64 = ImageToBase64DataUri(imagePath!);
+
+                // ✅ READY + BASE64
+                //await _ws.SendAsync(
+                //    JsonSerializer.Serialize(
+                //        WsResponse.Ready(
+                //            req,
+                //            new { imageBase64 = base64 }
+                //        )
+                //    )
+                //);
+                await _ws.SendAsync(
+                base64
+                );
+
+                // ✅ OCR RESULT
+                await _ws.SendAsync(
+                    JsonSerializer.Serialize(
+                        WsResponse.OcrResult(
+                            req,
+                            parsed!
+                        )
+                    )
+                );
 
                 Debug.WriteLine("✅ OCR DONE, WS RESPONSE SENT");
-
-                //var payloadBase64 = new WsOcrPayloadBase64(
-                //    Type: type!,
-                //    ImageBase64: base64,
-                //    Timestamp: DateTime.UtcNow
-                //);
-
-                //var payloadJson = new WsOcrPayloadOcr(
-                //    Type: type!,
-                //    ApiResponse: ocrResult,
-                //    Timestamp: DateTime.UtcNow
-                //);
-
-                //var jsonBase64 = JsonSerializer.Serialize(payloadBase64);
-                //var jsonOcr = JsonSerializer.Serialize(payloadJson);
-
-                //Debug.WriteLine("✅ OCR DONE, SEND WS JSON");
-                //await _ws.SendAsync(jsonBase64);
-                //await _ws.SendAsync(jsonOcr);
             }
             catch (Exception ex)
             {
-                var errorJson = JsonSerializer.Serialize(WsResponse.Error(
-                    ex.Message
-                ));
-                //{
-                //    error = true,
-                //    message = ex.Message
-                //});
-
-                await _ws.SendAsync(errorJson);
+                await _ws.SendAsync(
+                    JsonSerializer.Serialize(
+                        WsResponse.Error(_wsRequest, ex.Message)
+                    )
+                );
             }
             finally
             {
@@ -156,6 +178,75 @@ namespace ws_scanner.Application.Services
                 }
             }
         }
+
+        private static async Task WaitUntilFileReadyAsync(string path)
+        {
+            const int maxRetry = 20;
+
+            for (int i = 0; i < maxRetry; i++)
+            {
+                try
+                {
+                    using var fs = File.Open(
+                        path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.None //HARUS EXCLUSIVE
+                    );
+
+                    return; // file siap
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(300);
+                }
+            }
+
+            throw new IOException($"File still locked: {path}");
+        }
+
+        private static async Task ResizeImageIfNeededAsync(
+        string imagePath,
+        int maxWidth = 1400,
+        int jpegQuality = 60
+)
+        {
+            using var image = await SixLabors.ImageSharp.Image.LoadAsync(imagePath);
+
+            if (image.Width <= maxWidth)
+                return;
+
+            var ratio = (double)maxWidth / image.Width;
+            var newHeight = (int)(image.Height * ratio);
+
+            image.Mutate(ctx =>
+                ctx.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(maxWidth, newHeight),
+                    Sampler = KnownResamplers.Lanczos3
+                })
+            );
+
+            var ext = Path.GetExtension(imagePath).ToLowerInvariant();
+
+            if (ext is ".jpg" or ".jpeg")
+            {
+                await image.SaveAsync(
+                    imagePath,
+                    new JpegEncoder
+                    {
+                        Quality = jpegQuality
+                    }
+                );
+            }
+            else
+            {
+                // PNG / lainnya
+                await image.SaveAsync(imagePath);
+            }
+        }
+
 
     }
 }

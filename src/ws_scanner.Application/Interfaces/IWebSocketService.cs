@@ -12,8 +12,7 @@ namespace ws_scanner.Application.Interfaces
     {
         Task HandleAsync(System.Net.WebSockets.WebSocket socket);
         Task SendAsync(string message);
-        // 🔥 EVENT
-        event Func<string, Task>? OnDocumentTypeReceived;
+       event Func<WsRequest, Task>? OnRequestReceived;
     }
 
 }
