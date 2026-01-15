@@ -20,6 +20,7 @@ namespace ws_scanner.Infrastructure
 
             // HANYA RENAMED YANG PENTING UNTUK SCANNER
             _watcher.Renamed += OnRenamed;
+            _watcher.Changed += OnChanged;
         }
 
         private void OnRenamed(object sender, RenamedEventArgs e)
@@ -28,6 +29,15 @@ namespace ws_scanner.Infrastructure
                 return;
 
             Debug.WriteLine($"🔁 RENAMED TO IMAGE: {e.FullPath}");
+            _ = WaitUntilFileReady(e.FullPath);
+        }
+
+        private void OnChanged(object sender, FileSystemEventArgs e)
+        {
+            if (!IsImage(e.FullPath))
+                return;
+
+            Debug.WriteLine($"🔁 Changed TO IMAGE: {e.FullPath}");
             _ = WaitUntilFileReady(e.FullPath);
         }
 
