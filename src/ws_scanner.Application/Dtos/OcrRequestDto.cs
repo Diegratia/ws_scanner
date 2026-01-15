@@ -7,8 +7,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace ws_scanner.Application.Dtos
 {
-    public class OcrRequestDto
-    {
-        public IFormFile? image { get; set; }
-    }
+
+    public record OcrRequest(
+    string ImagePath,
+    string DocumentType
+);
 }

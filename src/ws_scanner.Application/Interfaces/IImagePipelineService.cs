@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ws_scanner.Application.Dtos;
 
 namespace ws_scanner.Application.Interfaces
 {
-    public interface IOcrApiClient
+    public interface IImagePipelineService
     {
-        Task<string> SendAsync(OcrRequest request);
+        void Start();
+        void Stop();
     }
-
 }

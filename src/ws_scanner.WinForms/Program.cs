@@ -10,14 +10,12 @@ ApplicationConfiguration.Initialize();
 
 var services = new ServiceCollection();
 
-
-
 services.AddSingleton<IImageWatcher, ImageWatcher>();
 services.AddSingleton<IOcrApiClient, OcrApiClient>();
 services.AddSingleton<IWebSocketService, WebSocketService>();
 services.AddSingleton<WebSocketServer>();
 
-services.AddSingleton<ImagePipelineService>();
+services.AddSingleton<IImagePipelineService, ImagePipelineService>();
 
 services.AddSingleton<WsServerForm>();
 

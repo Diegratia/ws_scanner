@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ws_scanner.Application.Interfaces;
 using ws_scanner.Application.Services;
 using ws_scanner.Infrastructure.Messaging.WebScoket;
 using ws_scanner.WinForms.Forms;
@@ -17,11 +18,11 @@ namespace ws_scanner.WinForms.Forms
     public partial class WsServerForm : Form
     {
         private readonly WebSocketServer _wsServer;
-        private readonly ImagePipelineService _pipeline;
+        private readonly IImagePipelineService _pipeline;
 
         public WsServerForm(
             WebSocketServer wsServer,
-            ImagePipelineService pipeline
+            IImagePipelineService pipeline
             )
         {
             InitializeComponent();
