@@ -12,4 +12,17 @@ namespace ws_scanner.Application.Dtos
     string ImagePath,
     string DocumentType
 );
+
+    public record OcrBulkItem(
+    string ImageName,
+    bool Success,
+    object? Result,
+    string? Error
+);
+
+    public record OcrBulkResult(
+        int Total,
+        List<OcrBulkItem> Items
+    );
+
 }

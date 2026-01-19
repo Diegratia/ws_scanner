@@ -26,7 +26,7 @@ namespace ws_scanner.Application.Services
 
         //private readonly object _lock = new();
         //private bool _isProcessing;
-        private string SCAN_FOLDER = (@"D:\Gawe\image");
+        private string SCAN_FOLDER = (@"C:\Data\scaner\scanner\Image");
 
         public ImagePipelineService(
             IImageWatcher watcher,
@@ -51,11 +51,10 @@ namespace ws_scanner.Application.Services
         private async void OnImageArrived(string imagePath)
         {
             await WaitUntilFileStableAsync(imagePath);
-            await ResizeImageIfNeededAsync(imagePath);
-
+            //await ResizeImageIfNeededAsync(imagePath);
             var name = Path.GetFileName(imagePath);
             var base64 = ImageToBase64DataUri(imagePath);
-            var payloadBase64 = $"IMG|{name}|{base64}";
+            var payloadBase64 = $"{name}|{base64}";
 
             await _ws.SendAsync(payloadBase64);
         }
@@ -67,40 +66,85 @@ namespace ws_scanner.Application.Services
 
         private async Task OnWsRequest(WsRequest req)
         {
-            if (req.Cmd != "scan")
+            if (req.Cmd != "send")
                 return;
 
             if (req.Images == null || req.Images.Count == 0)
                 throw new Exception("No images to OCR");
 
+            var items = new List<object>();
+
             foreach (var imageName in req.Images)
             {
                 var imagePath = Path.Combine(SCAN_FOLDER, imageName);
 
-                if (!File.Exists(imagePath))
-                    continue; // atau error
+                try
+                {
+                    var raw = await _ocr.SendAsync(
+                        new OcrRequest(imagePath, req.DocType)
+                    );
 
-                var ocrRequest = new OcrRequest(
-                    imagePath,
-                    req.DocType
-                );
+                    var parsed = JsonSerializer.Deserialize<object>(raw);
 
-                var raw = await _ocr.SendAsync(ocrRequest);
-                var parsed = JsonSerializer.Deserialize<object>(raw);
+                    items.Add(new
+                    {
+                        image_name = imageName,
+                        result = parsed
+                    });
 
-                await _ws.SendAsync(
-                    JsonSerializer.Serialize(
-                        WsResponse.OcrResult(
-                            req,
-                            new
-                            {
-                                image_name = imageName,
-                                result = parsed
-                            }
-                        )
-                    )
-                );
+                }
+                catch (Exception ex)
+                {
+                    items.Add(new
+                    {
+                        image_name = imageName,
+                        error = ex.Message
+                    });
+                }
             }
+
+            await _ws.SendAsync(
+                JsonSerializer.Serialize(
+                    WsResponse.OcrResult(
+                        req,
+                        new
+                        {
+                            total = items.Count,
+                            items = items
+                        }
+                    )
+                )
+            );
+
+
+            //foreach (var imageName in req.Images)
+            //{
+            //    var imagePath = Path.Combine(SCAN_FOLDER, imageName);
+
+            //    if (!File.Exists(imagePath))
+            //        continue; // atau error
+
+            //    var ocrRequest = new OcrRequest(
+            //        imagePath,
+            //        req.DocType
+            //    );
+
+            //    var raw = await _ocr.SendAsync(ocrRequest);
+            //    var parsed = JsonSerializer.Deserialize<object>(raw);
+
+            //    await _ws.SendAsync(
+            //        JsonSerializer.Serialize(
+            //            WsResponse.OcrResult(
+            //                req,
+            //                new
+            //                {
+            //                    image_name = imageName,
+            //                    result = parsed
+            //                }
+            //            )
+            //        )
+            //    );
+            //}
         }
 
 

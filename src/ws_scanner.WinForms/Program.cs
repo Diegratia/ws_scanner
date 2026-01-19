@@ -8,6 +8,7 @@ using ws_scanner.Infrastructure.Messaging.WebScoket;
 using ws_scanner.WinForms.Forms;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.DependencyInjection;
+using ws_scanner.Infrastructure.Device;
 
 ApplicationConfiguration.Initialize();
 
@@ -25,11 +26,15 @@ services.AddLogging(builder =>
 services.AddSingleton<IImageWatcher, ImageWatcher>();
 services.AddSingleton<IOcrApiClient, OcrApiClient>();
 services.AddSingleton<IWebSocketService, WebSocketService>();
+services.AddSingleton<IDeviceService, DeviceService>();
 services.AddSingleton<WebSocketServer>();
 
 services.AddSingleton<IImagePipelineService, ImagePipelineService>();
 
-services.AddSingleton<WsServerForm>();
+services.AddTransient<WsServerForm>();
+services.AddTransient<HomeForm>();
+services.AddTransient<TcpServerForm>();
+
 
 var provider = services.BuildServiceProvider();
-Application.Run(provider.GetRequiredService<WsServerForm>());
+Application.Run(provider.GetRequiredService<HomeForm>());

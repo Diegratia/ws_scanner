@@ -6,11 +6,15 @@ namespace ws_scanner.WinForms.Forms
     public partial class TcpServerForm : Form
     {
         private readonly IDeviceService _deviceService;
+        private readonly IServiceProvider _serviceProvider;
 
-        public TcpServerForm()
+
+        public TcpServerForm(IServiceProvider serviceProvider, IDeviceService deviceService)
         {
             InitializeComponent();
-            _deviceService = new DeviceService();
+
+            _deviceService = deviceService;
+            _serviceProvider = serviceProvider;
         }
 
 

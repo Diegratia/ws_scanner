@@ -11,8 +11,8 @@ namespace ws_scanner.Infrastructure
 
         public ImageWatcher()
         {
-            //_watcher = new FileSystemWatcher(@"C:\Data\scaner\scanner\Image");
-            _watcher = new FileSystemWatcher(@"D:\Gawe\image");
+            _watcher = new FileSystemWatcher(@"C:\Data\scaner\scanner\Image");
+            //_watcher = new FileSystemWatcher(@"D:\Gawe\image");
 
             _watcher.NotifyFilter =
                 NotifyFilters.FileName |

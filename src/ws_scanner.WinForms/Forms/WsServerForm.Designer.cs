@@ -31,6 +31,7 @@
             btnStartWs = new Button();
             btnStopWs = new Button();
             txtPortWs = new TextBox();
+            btnBackWsServer = new Button();
             SuspendLayout();
             // 
             // btnStartWs
@@ -61,12 +62,23 @@
             txtPortWs.TextAlign = HorizontalAlignment.Center;
             txtPortWs.TextChanged += txtPortWs_TextChanged;
             // 
+            // btnBackWsServer
+            // 
+            btnBackWsServer.Location = new Point(2, 1);
+            btnBackWsServer.Name = "btnBackWsServer";
+            btnBackWsServer.Size = new Size(36, 29);
+            btnBackWsServer.TabIndex = 4;
+            btnBackWsServer.Text = "<-";
+            btnBackWsServer.UseVisualStyleBackColor = true;
+            btnBackWsServer.Click += btnBackWsServer_Click;
+            // 
             // WsServerForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.White;
             ClientSize = new Size(393, 235);
+            Controls.Add(btnBackWsServer);
             Controls.Add(txtPortWs);
             Controls.Add(btnStartWs);
             Controls.Add(btnStopWs);
@@ -84,5 +96,7 @@
         private Button btnStartWs;
         private Button btnStopWs;
         private TextBox txtPortWs;
+        private Button btnBackWsServer;
+        private Label lblStatus;
     }
 }
