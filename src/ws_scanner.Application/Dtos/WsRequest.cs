@@ -18,6 +18,9 @@ namespace ws_scanner.Application.Dtos
     string ActionType,
 
      [property: JsonPropertyName("action_source")]
-    string ActionSource
+    string ActionSource,
+
+    [property: JsonPropertyName("images")]
+    List<string>? Images
  );
 }

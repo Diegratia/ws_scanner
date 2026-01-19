@@ -7,11 +7,12 @@ namespace ws_scanner.Infrastructure
     {
         private readonly FileSystemWatcher _watcher;
         public event Action<string>? OnImageReady;
+        private readonly HashSet<string> _processed = new();
 
         public ImageWatcher()
         {
-            _watcher = new FileSystemWatcher(@"C:\Data\scaner\scanner\Image");
-            //_watcher = new FileSystemWatcher(@"D:\Gawe\image");
+            //_watcher = new FileSystemWatcher(@"C:\Data\scaner\scanner\Image");
+            _watcher = new FileSystemWatcher(@"D:\Gawe\image");
 
             _watcher.NotifyFilter =
                 NotifyFilters.FileName |
@@ -20,7 +21,7 @@ namespace ws_scanner.Infrastructure
 
             // HANYA RENAMED YANG PENTING UNTUK SCANNER
             _watcher.Renamed += OnRenamed;
-            _watcher.Changed += OnChanged;
+            //_watcher.Changed += OnChanged;
         }
 
         private void OnRenamed(object sender, RenamedEventArgs e)
@@ -29,7 +30,7 @@ namespace ws_scanner.Infrastructure
                 return;
 
             Debug.WriteLine($"🔁 RENAMED TO IMAGE: {e.FullPath}");
-            _ = WaitUntilFileReady(e.FullPath);
+            _ = WaitUntilFileStable(e.FullPath);
         }
 
         private void OnChanged(object sender, FileSystemEventArgs e)
@@ -38,36 +39,66 @@ namespace ws_scanner.Infrastructure
                 return;
 
             Debug.WriteLine($"🔁 Changed TO IMAGE: {e.FullPath}");
-            _ = WaitUntilFileReady(e.FullPath);
+            _ = WaitUntilFileStable(e.FullPath);
         }
 
-        private async Task WaitUntilFileReady(string path)
+        private async Task WaitUntilFileStable(string path)
         {
+            if (_processed.Contains(path))
+                return;
+
+            long lastSize = -1;
+
             for (int i = 0; i < 10; i++)
             {
-                try
+                if (!File.Exists(path))
+                    return;
+
+                var size = new FileInfo(path).Length;
+
+                if (size > 0 && size == lastSize)
                 {
-                    if (!File.Exists(path))
-                        return;
-
-                    using var fs = File.Open(
-                        path,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.None);
-
+                    _processed.Add(path);
                     Debug.WriteLine($"📁 FILE READY: {path}");
                     OnImageReady?.Invoke(path);
                     return;
                 }
-                catch
-                {
-                    await Task.Delay(300);
-                }
+
+                lastSize = size;
+                await Task.Delay(500);
             }
 
             Debug.WriteLine($"❌ FILE NOT READY: {path}");
         }
+
+
+        //private async Task WaitUntilFileReady(string path)
+        //{
+        //    for (int i = 0; i < 10; i++)
+        //    {
+        //        try
+        //        {
+        //            if (!File.Exists(path))
+        //                return;
+
+        //            using var fs = File.Open(
+        //                path,
+        //                FileMode.Open,
+        //                FileAccess.Read,
+        //                FileShare.None);
+
+        //            Debug.WriteLine($"📁 FILE READY: {path}");
+        //            OnImageReady?.Invoke(path);
+        //            return;
+        //        }
+        //        catch
+        //        {
+        //            await Task.Delay(300);
+        //        }
+        //    }
+
+        //    Debug.WriteLine($"❌ FILE NOT READY: {path}");
+        //}
 
         private static bool IsImage(string path)
         {
